@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 import string
 import random
@@ -42,15 +42,29 @@ def home():
         url_received = request.form["nm"]
         found_url = Urls.query.filter_by(long=url_received).first()
         if found_url:
-            return f"{found_url.short}"
+            return redirect(url_for("display_short_url", url=found_url.short))
         else:
             short_url = shorten_url()
             new_url = Urls(url_received, short_url)
             db.session.add(new_url)
             db.session.commit()
-            return short_url
+            return redirect(url_for("display_short_url", url=short_url))
     else:
         return render_template('home.html')
+
+
+@app.route('/display/<url>')
+def display_short_url(url):
+    return render_template('shorturl.html', short_url_display=url)
+
+
+@app.route('/<short_url>')
+def redirection(short_url):
+    long_url = Urls.query.filter_by(short=short_url).first()
+    if long_url:
+        return redirect(long_url.long)
+    else:
+        return f'<h1>Url does not exist</h1>'
 
 
 if __name__ == '__main__':
