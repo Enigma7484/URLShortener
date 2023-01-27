@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
+import string
+import random
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///urls.db'
@@ -23,11 +25,30 @@ def create_tables():
     db.create_all()
 
 
+def shorten_url():
+    letters = string.ascii_lowercase + string.ascii_uppercase
+    while True:
+        random_letters = random.choices(letters, k=3)
+        random_letters = "".join(random_letters)
+        short_url = Urls.query.filter_by(short=random_letters).first()
+        if not short_url:
+            return random_letters
+    return "abc"
+
+
 @app.route('/', methods=['POST', 'GET'])
 def home():
     if request.method == "POST":
         url_received = request.form["nm"]
-        return url_received
+        found_url = Urls.query.filter_by(long=url_received).first()
+        if found_url:
+            return f"{found_url.short}"
+        else:
+            short_url = shorten_url()
+            new_url = Urls(url_received, short_url)
+            db.session.add(new_url)
+            db.session.commit()
+            return short_url
     else:
         return render_template('home.html')
 
